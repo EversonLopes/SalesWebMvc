@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SalesWebMvc.Models;
 using SalesWebMvc.Models.ViewModels;
+using SalesWebMvc.Services.Exceptions;
 
 namespace SalesWebMvc.Controllers
 {
@@ -13,7 +14,8 @@ namespace SalesWebMvc.Controllers
     {
         private readonly SellerService _sellerService;
         private readonly DepartamentService _departamentService;
-        public SellersController(SellerService sellerService,DepartamentService departamentService) {
+        public SellersController(SellerService sellerService, DepartamentService departamentService)
+        {
             _sellerService = sellerService;
             _departamentService = departamentService;
         }
@@ -23,7 +25,8 @@ namespace SalesWebMvc.Controllers
             return View(list);
         }
 
-        public IActionResult Create() {
+        public IActionResult Create()
+        {
             var departaments = _departamentService.FindAll();
             var viewModel = new SellerFormViewModel { Departaments = departaments };
             return View(viewModel);
@@ -37,7 +40,8 @@ namespace SalesWebMvc.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public IActionResult Delete(int? id) {
+        public IActionResult Delete(int? id)
+        {
             if (id == null)
             {
                 return NotFound();
@@ -50,7 +54,7 @@ namespace SalesWebMvc.Controllers
             }
 
             return View(obj);
-      }
+        }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -73,6 +77,43 @@ namespace SalesWebMvc.Controllers
             }
 
             return View(obj);
+        }
+        public IActionResult Edit(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+            var obj = _sellerService.FindById(id.Value);
+
+            if (obj == null)
+            {
+                return NotFound();
+            }
+            List<Departament> departaments = _departamentService.FindAll();
+            SellerFormViewModel viewModel = new SellerFormViewModel { Seller = obj, Departaments = departaments };
+            return View(viewModel);
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(int id, Seller seller)
+        {
+            if (id != seller.Id)
+            {
+                return BadRequest();
+            }
+            try
+            {
+                _sellerService.Update(seller);
+                return RedirectToAction(nameof(Index));
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+            catch (DbConcurrencyException) {
+                return BadRequest();
+            }
         }
     }
 }
